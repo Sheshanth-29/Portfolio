@@ -244,15 +244,14 @@
         /* Intro Name Reveal */
         .intro-name-container {
             position: absolute;
-            top: 60%;                    /* ← push below center (was implicitly 50%) */
+            top: 60%;
             left: 50%;
+            transform: translateX(-50%) translateY(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transform: scale(0.9);
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 2;
         }
 
         .intro-name-container.show {
@@ -279,6 +278,11 @@
             font-size: 0.9rem;
             color: var(--accent-color);
             letter-spacing: 3px;
+            opacity: 0;
+            transition: opacity 0.5s ease 0.1s;
+        }
+
+        .intro-subtitle.show {
             opacity: 0.8;
         }
 
@@ -1271,8 +1275,8 @@
         </div>
 
         <div class="intro-name-container" id="intro-name-wrapper">
-            <h1 class="intro-name">Sheshanth S</h1>
-            <p class="intro-subtitle">Software Development Engineer</p>
+        <h1 class="intro-name" id="introName">Sheshanth S</h1>
+        <p class="intro-subtitle" id="introSubtitle">Software Development Engineer</p>
         </div>
     </div>
 
@@ -1732,24 +1736,61 @@
         // Trigger animation sequence on every load/refresh
         runIntroSequence();
 
+        function glitchReveal() {
+            const nameEl  = document.getElementById('introName');
+            const subEl   = document.getElementById('introSubtitle');
+            const FULL    = 'Sheshanth S';
+            const CHARS   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*!?';
+            const FLICKER = ['#ff8c00', '#ff2d78', '#ffffff'];
+            const MAX_ITER  = 24;
+            const LOCK_STEP = MAX_ITER / FULL.length;
+
+            let iter = 0;
+            subEl.classList.remove('show');
+
+            // Start fully scrambled — name resolves out of the glitch
+            nameEl.style.color = FLICKER[0];
+            nameEl.textContent = FULL.split('').map(() =>
+                CHARS[Math.floor(Math.random() * CHARS.length)]
+            ).join('');
+
+            const interval = setInterval(() => {
+                nameEl.textContent = FULL.split('').map((char, i) => {
+                    if (i < Math.floor((iter + 1) / LOCK_STEP)) return char;
+                    return CHARS[Math.floor(Math.random() * CHARS.length)];
+                }).join('');
+
+                nameEl.style.color = FLICKER[iter % FLICKER.length];
+
+                iter++;
+                if (iter >= MAX_ITER) {
+                    clearInterval(interval);
+                    nameEl.textContent = FULL;
+                    nameEl.style.color = '#ffffff';
+                    subEl.classList.add('show');
+                }
+            }, 45);
+        }
+
+        runIntroSequence();
+
         function runIntroSequence() {
-            // Phase 1: Solar System orbits (2.2 seconds)
             setTimeout(() => {
-                // Transition out Solar System and show Name
                 solarAnim.style.opacity = '0';
                 solarAnim.style.transform = 'scale(1.2)';
-                
+                solarAnim.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+
                 setTimeout(() => {
                     solarAnim.style.display = 'none';
-                    nameWrapper.classList.add('show');
+                    glitchReveal();            // ← glitch fires here
                 }, 400);
 
             }, 2200);
 
-            // Phase 2: Fade out splash completely (3.6 seconds total)
+            // Extra 200ms buffer so glitch finishes before fade-out
             setTimeout(() => {
                 exitSplashScreen();
-            }, 3600);
+            }, 4900);
         }
 
         function exitSplashScreen() {
